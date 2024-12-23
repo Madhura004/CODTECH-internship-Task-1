@@ -1,0 +1,182 @@
+/*FSM Design & Testbench code*/
+
+module fsm_101 (
+    input clk,
+    input reset,
+    input in,
+    output reg out
+);
+    // State encoding
+    typedef enum reg [1:0] {
+        S0, // Initial state
+        S1, // State after 1
+        S2, // State after 10
+        S3  // State after 101
+    } state_t;
+
+    state_t current_state, next_state;
+
+    always @(posedge clk or posedge reset) begin
+        if (reset)
+            current_state <= S0;
+        else
+            current_state <= next_state;
+    end
+
+    always @(current_state or in) begin
+        case (current_state)
+            S0: next_state = in ? S1 : S0;
+            S1: next_state = in ? S1 : S2;
+            S2: next_state = in ? S3 : S0;
+            S3: next_state = in ? S1 : S2;
+            default: next_state = S0;
+        endcase
+    end
+
+    always @(current_state) begin
+        case (current_state)
+            S3: out = 1;
+            default: out = 0;
+        endcase
+    end
+endmodule
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+
+entity fsm_101 is
+    Port ( clk : in STD_LOGIC;
+           reset : in STD_LOGIC;
+           input_signal : in STD_LOGIC;
+           output_signal : out STD_LOGIC);
+end fsm_101;
+
+architecture Behavioral of fsm_101 is
+    type state_type is (S0, S1, S2, S3);
+    signal current_state, next_state : state_type;
+begin
+
+    -- State transition process
+    process(clk, reset)
+    begin
+        if reset = '1' then
+            current_state <= S0;
+        elsif rising_edge(clk) then
+            current_state <= next_state;
+        end if;
+    end process;
+
+    -- Next state logic process
+    process(current_state, input_signal)
+    begin
+        case current_state is
+            when S0 =>
+                if input_signal = '1' then
+                    next_state <= S1;
+                else
+                    next_state <= S0;
+                end if;
+            when S1 =>
+                if input_signal = '1' then
+                    next_state <= S1;
+                else
+                    next_state <= S2;
+                end if;
+            when S2 =>
+                if input_signal = '1' then
+                    next_state <= S3;
+                else
+                    next_state <= S0;
+                end if;
+            when S3 =>
+                if input_signal = '1' then
+                    next_state <= S1;
+                else
+                    next_state <= S2;
+                end if;
+            when others =>
+                next_state <= S0;
+        end case;
+    end process;
+
+    -- Output logic process
+    process(current_state)
+    begin
+        case current_state is
+            when S3 =>
+                output_signal <= '1';
+            when others =>
+                output_signal <= '0';
+        end case;
+    end process;
+
+end Behavioral;
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+
+entity fsm_101_tb is
+end fsm_101_tb;
+
+architecture Behavioral of fsm_101_tb is
+    signal clk : STD_LOGIC := '0';
+    signal reset : STD_LOGIC := '0';
+    signal input_signal : STD_LOGIC := '0';
+    signal output_signal : STD_LOGIC;
+
+begin
+    -- Instantiate the FSM
+    uut: entity work.fsm_101
+        Port map (
+            clk => clk,
+            reset => reset,
+            input_signal => input_signal,
+            output_signal => output_signal
+        );
+
+    -- Clock generation process
+    clk_process : process
+    begin
+        while True loop
+            clk <= '0';
+            wait for 5 ns;
+            clk <= '1';
+            wait for 5 ns;
+        end loop;
+    end process;
+
+    -- Stimulus process
+    stimulus: process
+    begin
+        -- Initial setup
+        report "Starting Testbench";
+        reset <= '1'; -- Assert reset
+        input_signal <= '0'; -- Initialize input
+        wait for 10 ns;
+        reset <= '0'; -- Deassert reset
+        wait for 10 ns;
+
+        -- Apply test sequence
+        report "Applying test sequence";
+        input_signal <= '1'; wait for 10 ns;
+        input_signal <= '0'; wait for 10 ns;
+        input_signal <= '1'; wait for 10 ns;
+        input_signal <= '0'; wait for 10 ns;
+        input_signal <= '1'; wait for 10 ns;
+        input_signal <= '1'; wait for 10 ns;
+        input_signal <= '0'; wait for 10 ns;
+
+        -- End simulation
+        wait;
+    end process;
+
+    -- Monitor process
+    monitor: process
+    begin
+        wait for 1 ns; -- Delay to ensure monitoring starts after initialization
+        while True loop
+            report "Time: " & time'image(now) & " | clk: " & std_logic'image(clk) & " | reset: " & std_logic'image(reset) & " | input_signal: " & std_logic'image(input_signal) & " | output_signal: " & std_logic'image(output_signal);
+            wait for 10 ns;
+        end loop;
+    end process;
+
+end Behavioral;
